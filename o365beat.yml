@@ -1,0 +1,224 @@
+################### O365beat Configuration Example #########################
+
+############################# O365beat ######################################
+
+o365beat:
+  ## period defines how often API is polled for new content blobs
+  ## 5 min default, as new content (probably) isn't published too often
+  # period: 5m
+
+  # period Defines how often API is polled for new content blobs
+  # 5 min default, as new content (probably) isn't published too often
+  # period: 5m
+
+  # api_timeout Defines how long the beat will wait for responses from the API
+  # 30 second default; extend this for busy tenants
+  # api_timeout: 30s
+
+  # content_max_age Defines the oldest content the beat will request
+  # 7 day default, which is the max retained according to Microsoft
+  # reduce this for busy tenants to minimize risk of timeouts
+  # content_max_age: 168h
+
+  ## pull secrets from environment (e.g, > set -a; . ./ENV_FILE; set +a;)
+  ## or a key store (https://www.elastic.co/guide/en/beats/filebeat/current/keystore.html)
+  ## or hard-code here:
+  tenant_domain: ${O365BEAT_TENANT_DOMAIN:}
+  client_secret: ${O365BEAT_CLIENT_SECRET:}
+  client_id:     ${O365BEAT_CLIENT_ID:}     # aka application id (GUID)
+  directory_id:  ${O365BEAT_DIRECTORY_ID:}  # aka tenant id (GUID)
+  registry_file_path: ${O365BEAT_REGISTRY_PATH:./o365beat.state}
+
+  ## the following content types will be pulled from the API
+  ## for available types, see https://docs.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference#working-with-the-office-365-management-activity-api
+  content_types:
+    - Audit.AzureActiveDirectory
+    - Audit.Exchange
+    - Audit.SharePoint
+    - Audit.General
+    # - DLP.All # TODO: figure out what to do with this, it's not like the rest
+
+## By default, map Office 365 Activities API event fields to ECS fields
+## API "Common" fields: Id, RecordType, CreationTime, Operation, OrganizationId,
+##                      UserType, UserKey, Workload, ResultStatus, ObjectId,
+##                      UserId, ClientIP, Scope
+processors:
+  - dissect:
+      field: UserId
+      tokenizer: '%{user.name}@%{user.domain}'
+      when:
+        contains:
+          UserId: '@'
+  - dissect:
+      field: ClientIP
+      tokenizer: '[%{clientip}]:%{clientport}'
+      when:
+        contains:
+          ClientIP: '['
+  - dissect:
+      field: ClientIP
+      tokenizer: '%{clientip}:%{clientport}'
+      when:
+        contains:
+          ClientIP: ':'
+        not:
+          contains:
+            ClientIP: '['
+  - convert:
+      fields:
+        - {from: Id, to: 'event.id', type: string}                # ecs core
+        - {from: RecordType, to: 'event.code', type: string}      # ecs extended
+        - {from: Operation, to: 'event.action', type: string}     # ecs core
+        - {from: OrganizationId, to: 'cloud.account.id', type: string} # ecs extended
+        # - {from: UserType, to: '', type: ''}                    # no ecs mapping
+        # - {from: UserKey, to: '', type: ''}                     # no ecs mapping
+        - {from: Workload, to: 'event.category', type: string}    # ecs core
+        - {from: ResultStatus, to: 'event.outcome', type: string} # ecs extended
+        # - {from: ObjectId, to: '', type: ''}                    # no ecs mapping
+        - {from: UserId, to: 'user.id', type: string}             # ecs core
+        - {from: ClientIP, to: 'client.ip', type: ip}             # ecs core
+        - {from: 'dissect.clientip', to: 'client.ip', type: ip}   # ecs core
+        # - {from: "Scope", to: "", type: ""}                     # no ecs mapping
+        # the following fields use the challenging array-of-name-value-pairs format
+        # converting them to strings fixes issues in elastic, eases non-script parsing
+        # easier to rehydrate into arrays from strings than vice versa:
+        - {from: Parameters, type: string}                        # no ecs mapping
+        - {from: ExtendedProperties, type: string}                # no ecs mapping
+        - {from: ModifiedProperties, type: string}                # no ecs mapping
+      ignore_missing: true
+      fail_on_error: false
+      mode: copy # default
+
+#================================ General =====================================
+
+# The name of the shipper that publishes the network data. It can be used to group
+# all the transactions sent by a single shipper in the web interface.
+#name:
+
+# The tags of the shipper are included in their own field with each
+# transaction published.
+#tags: ["service-X", "web-tier"]
+
+# Optional fields that you can specify to add additional information to the
+# output.
+#fields:
+#  env: staging
+
+
+#============================== Dashboards =====================================
+# These settings control loading the sample dashboards to the Kibana index. Loading
+# the dashboards is disabled by default and can be enabled either by setting the
+# options here or by using the `setup` command.
+#setup.dashboards.enabled: false
+
+# The URL from where to download the dashboards archive. By default this URL
+# has a value which is computed based on the Beat name and version. For released
+# versions, this URL points to the dashboard archive on the artifacts.elastic.co
+# website.
+#setup.dashboards.url:
+
+#============================== Kibana =====================================
+
+# Starting with Beats version 6.0.0, the dashboards are loaded via the Kibana API.
+# This requires a Kibana endpoint configuration.
+setup.kibana:
+
+  # Kibana Host
+  # Scheme and port can be left out and will be set to the default (http and 5601)
+  # In case you specify and additional path, the scheme is required: http://localhost:5601/path
+  # IPv6 addresses should always be defined as: https://[2001:db8::1]:5601
+  #host: "localhost:5601"
+
+  # Kibana Space ID
+  # ID of the Kibana Space into which the dashboards should be loaded. By default,
+  # the Default Space will be used.
+  #space.id:
+
+#============================= Elastic Cloud ==================================
+
+# These settings simplify using O365beat with the Elastic Cloud (https://cloud.elastic.co/).
+
+# The cloud.id setting overwrites the `output.elasticsearch.hosts` and
+# `setup.kibana.host` options.
+# You can find the `cloud.id` in the Elastic Cloud web UI.
+#cloud.id:
+
+# The cloud.auth setting overwrites the `output.elasticsearch.username` and
+# `output.elasticsearch.password` settings. The format is `<user>:<pass>`.
+#cloud.auth:
+
+#================================ Outputs =====================================
+
+# Configure what output to use when sending the data collected by the beat.
+
+#-------------------------- Elasticsearch output ------------------------------
+output.elasticsearch:
+  # Array of hosts to connect to.
+  hosts: ["localhost:9200"]
+
+  # Optional protocol and basic auth credentials.
+  #protocol: "https"
+  #username: "elastic"
+  #password: "changeme"
+
+#----------------------------- Logstash output --------------------------------
+#output.logstash:
+  # The Logstash hosts
+  #hosts: ["localhost:5044"]
+
+  # Optional SSL. By default is off.
+  # List of root certificates for HTTPS server verifications
+  #ssl.certificate_authorities: ["/etc/pki/root/ca.pem"]
+
+  # Certificate for SSL client authentication
+  #ssl.certificate: "/etc/pki/client/cert.pem"
+
+  # Client Certificate Key
+  #ssl.key: "/etc/pki/client/cert.key"
+
+#================================ Processors =====================================
+
+# Configure processors to enhance or manipulate events generated by the beat.
+
+# processors:
+#   - add_host_metadata: ~
+#   - add_cloud_metadata: ~
+#   - add_docker_metadata: ~
+
+#================================ Logging =====================================
+
+# Sets log level. The default log level is info.
+# Available log levels are: error, warning, info, debug
+#logging.level: debug
+
+# At debug level, you can selectively enable logging only for some components.
+# To enable all selectors use ["*"]. Examples of other selectors are "beat",
+# "publish", "service".
+#logging.selectors: ["*"]
+
+#============================== X-Pack Monitoring ===============================
+# o365beat can export internal metrics to a central Elasticsearch monitoring
+# cluster.  This requires xpack monitoring to be enabled in Elasticsearch.  The
+# reporting is disabled by default.
+
+# Set to true to enable the monitoring reporter.
+#monitoring.enabled: false
+
+# Sets the UUID of the Elasticsearch cluster under which monitoring data for this
+# O365beat instance will appear in the Stack Monitoring UI. If output.elasticsearch
+# is enabled, the UUID is derived from the Elasticsearch cluster referenced by output.elasticsearch.
+#monitoring.cluster_uuid:
+
+# Uncomment to send the metrics to Elasticsearch. Most settings from the
+# Elasticsearch output are accepted here as well.
+# Note that the settings should point to your Elasticsearch *monitoring* cluster.
+# Any setting that is not set is automatically inherited from the Elasticsearch
+# output configuration, so if you have the Elasticsearch output configured such
+# that it is pointing to your Elasticsearch monitoring cluster, you can simply
+# uncomment the following line.
+#monitoring.elasticsearch:
+
+#================================= Migration ==================================
+
+# This allows to enable 6.7 migration aliases
+#migration.6_to_7.enabled: true
