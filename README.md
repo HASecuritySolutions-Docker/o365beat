@@ -16,7 +16,7 @@ O365BEAT_DIRECTORY_ID
 The easiest way to configure o365beat is to overwrite /etc/o365beat/o365beat.yml with your own configuration file. Below is an example of running o365beat with a custom configuration file.
 
 ```bash
-docker run -it --rm --name o365beat -v /path/to/your/o365beat.yml:/etc/o365beat/o365beat.yml hasecuritysolution/o365beat
+docker run -it --rm --name o365beat -v /path/to/your/o365beat.yml:/etc/o365beat/o365beat.yml hasecuritysolutions/o365beat
 ```
 
 Before using o365beat, you need to enable Office 365 audit logging:
