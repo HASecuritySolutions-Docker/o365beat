@@ -1,9 +1,8 @@
 FROM ubuntu:18.04
 
-ADD https://github.com/counteractive/o365beat/releases/download/v1.5.1/o365beat-1.5.1-amd64.deb
+ADD https://github.com/counteractive/o365beat/releases/download/v1.5.1/o365beat-1.5.1-amd64.deb /tmp
 
-RUN dpkg -i o365beat-1.5.1-amd64.deb \
-    rm o365beat-1.5.1-amd64.deb
+RUN dpkg -i o365beat-1.5.1-amd64.deb
 
 COPY o365beat.yml /etc/o365beat/
 
