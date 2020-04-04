@@ -9,8 +9,11 @@ docker pull hasecuritysolutions/o365beat
 The following environmental variables are available to use with this image:
 
 O365BEAT_TENANT_DOMAIN
+
 O365BEAT_CLIENT_SECRET
+
 O365BEAT_CLIENT_ID
+
 O365BEAT_DIRECTORY_ID
 
 The easiest way to configure o365beat is to overwrite /etc/o365beat/o365beat.yml with your own configuration file. Below is an example of running o365beat with a custom configuration file.
@@ -49,3 +52,7 @@ New-EXRMSubscription -General
 # Validate
 Get-EXRMSubscriptions
 ```
+
+Lastly, you will need to set up an enterprise application in Azure that has access to the Office 365 Management API. Documentation to follow. For now, more documentation on how to do this can be found here:
+
+https://github.com/counteractive/o365beat
