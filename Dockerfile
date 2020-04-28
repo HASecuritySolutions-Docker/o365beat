@@ -10,4 +10,4 @@ RUN dpkg -i /tmp/o365beat-1.5.1-amd64.deb
 
 COPY o365beat.yml /etc/o365beat/
 
-CMD ["/bin/bash", "-c", "/usr/share/o365beat/bin/o365beat --e --c=o365beat.yml --path.home=/usr/share/o365beat --path.config=/etc/o365beat --path.data=/var/lib/o365beat --path.logs=/var/log/o365beat"]
+CMD ["/usr/share/o365beat/bin/o365beat --e --c=o365beat.yml --path.home=/usr/share/o365beat --path.config=/etc/o365beat --path.data=/var/lib/o365beat --path.logs=/var/log/o365beat"]
