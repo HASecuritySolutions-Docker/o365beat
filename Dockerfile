@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 
 RUN apt-get update && \
-  apk-get install -y ca-certificates && \
+  apt-get install -y ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
 ADD https://github.com/counteractive/o365beat/releases/download/v1.5.1/o365beat-1.5.1-amd64.deb /tmp
